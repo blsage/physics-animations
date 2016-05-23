@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Runge-Kutta Physics</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas" width="480" height="320" style="background-color: #262626"></canvas>
+
+<script>
+	var canvas = document.getElementById("canvas");
+	var ctx = canvas.getContext("2d");
+	ctx.background = 'rgba(0, 0, 0, 0)';
+
+	var spacePressed = false;
+	var ballRadius = 10;
+	var offset = canvas.width / 2;
+
+	var x = -canvas.width / 2;
+	var y = canvas.height - 30;
+	var vx = 0;
+	var state = [x, vx];
+	var mass = 1;
+	var stiffness = 0.00001;
+	var cof = 0.00001;
+	var g = 9.8;
+	var timestep = 10;
+	var time = 0;
+
+
+	document.addEventListener("keydown", keyDownHandler, false);
+	document.addEventListener("keyup", keyUpHandler, false);
+	document.addEventListener("mousemove", mouseMoveHandler, false);
+
+	function keyDownHandler(e) {
+	    if(e.keyCode == 32) {
+	        spacePressed = true;
+	    }
+	}
+
+	function keyUpHandler(e) {
+	}
+
+	function mouseMoveHandler(e) {
+	}
+
+	// Returns final (position, velocity) array after time dt has passed.
+  	// x: initial position
+ 	// v: initial velocity
+ 	// a: acceleration function a(x, v, dt) (must be callable)
+ 	// dt: timestep
+	function rk4(x, v, a, dt) {
+  		
+  		var x1 = x;
+		var v1 = v;
+		var a1 = a.apply(this, [x1, v1, 0]);
+
+		var x2 = x + 0.5*v1*dt;
+		var v2 = v + 0.5*a1*dt;
+		var a2 = a.apply(this, [x2, v2, dt/2]);
+
+		var x3 = x + 0.5*v2*dt;
+		var v3 = v + 0.5*a2*dt;
+		var a3 = a.apply(this, [x3, v3, dt/2]);
+
+		var x4 = x + v3*dt;
+		var v4 = v + a3*dt;
+		var a4 = a.apply(this, [x4, v4, dt]);
+
+		var xf = x + (dt/6)*(v1 + 2*v2 + 2*v3 + v4);
+		var vf = v + (dt/6)*(a1 + 2*a2 + 2*a3 + a4);
+
+		return [xf, vf]; 	
+	}
+
+	function springAcceleration(x, v, dt) {	
+		return -(stiffness * x) + (cof * g) * -(Math.sign(state[1]));
+	}
+
+	function drawBall() {
+	    ctx.beginPath();
+	    ctx.arc(state[0] + offset, y, ballRadius, 0, Math.PI * 2);
+	    // ctx.rect(state[0] + offset, y, 20, 20);
+	    ctx.fillStyle = "#38ac54";
+	    ctx.fill();
+	    ctx.closePath();
+	}
+
+	function draw() {
+		if (spacePressed) {
+			console.log(state[1]);
+	    	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	    	drawBall();
+	    	state = rk4(state[0], state[1], springAcceleration, timestep);
+	    }
+
+	    if (Math.abs(state[0]) < 5 && Math.abs(state[1]) < 0.0005) {
+	    	clearInterval(loop);
+	    }
+
+	}
+
+	var loop = setInterval(draw, timestep);
+</script>
+
+</body>
+</html>
