@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Runge-Kutta Physics</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas" width="480" height="480" style="background-color: #262626"></canvas>
+
+<script>
+
+	// setup
+	var canvas = document.getElementById("canvas");
+	var c = canvas.getContext("2d");
+	c.background = 'rgba(0, 0, 0, 0)';
+
+	// user controls
+	var spaceToggle = false;
+
+	// physics parameters
+	var discRadius = 0.5;
+	var ropeLength = 1;
+	var discAngularVelocity = Math.PI / 12;
+	var ballAngle = Math.PI / 4;
+	var g = 9.8;
+	var timestep = 0.01;
+
+	// global variables
+	var time = 0;
+	var ballX = 0;
+	var ballY = 0;
+	var ballAngelularVelocity = 0;
+	var ballConditions = [ballAngle, ballAngelularVelocity];
+	var discX = 0;
+	var discY = 0;
+
+	// graphics values
+	var ballRadius = 10;
+	var pixelsPerMeter = (canvas.width / 2) / (discRadius + ropeLength);
+
+	// user controls
+	document.addEventListener("keydown", keyDownHandler, false);
+
+	function keyDownHandler(e) {
+	    if (e.keyCode == 32 && spaceToggle == false) {
+	        spaceToggle = true;
+	    } else if (e.keyCode == 32 && spaceToggle == true) {
+	    	spaceToggle = false;
+	    }
+	}
+
+	// Fourth order Runge-Kutta method for kinematics approximation
+	// Returns final (angle, angular momentum) array after time dt has passed.
+  	// theta: initial angle
+ 	// omega: initial angular momentum
+ 	// alpha: angular acceleration function alpha(theta, omega, dt) (must be callable)
+ 	// dt: timestep
+ 	function rk4(theta, omega, alpha, dt) {
+  		
+  		var theta0 = theta;
+		var omega0 = omega;
+		var alpha0 = alpha.apply(this, [theta0, omega0, 0]);
+
+		var theta1 = theta + (0.5 * omega0 * dt);
+		var omega1 = omega + (0.5 * alpha0 * dt);
+		var alpha1 = alpha.apply(this, [theta1, omega1, dt / 2]);
+
+		var theta2 = theta + (0.5 * omega1 * dt);
+		var omega2 = omega + (0.5 * alpha1 * dt);
+		var alpha2 = alpha.apply(this, [theta2, omega2, dt / 2]);
+
+		var theta3 = theta + (omega2 * dt);
+		var omega3 = omega + (alpha2 * dt);
+		var alpha3 = alpha.apply(this, [theta3, omega3, dt]);
+
+		var thetaf = theta + ((dt / 6) * (omega0 + (2 * omega1) + (2 * omega2) + omega3));
+		var omegaf = omega + ((dt / 6) * (alpha0 + (2 * alpha1) + (2 * alpha2) + alpha3));
+
+		time += dt;
+
+		return [thetaf, omegaf]; 	
+	}
+
+	// Passable angular acceleration function for ball
+	function ballAngularAcceleration(theta, omega, dt) {
+		return ((discRadius / ropeLength) * discAngularVelocity * discAngularVelocity * Math.cos(ballAngle - (discAngularVelocity * time)))
+				- ((g / ropeLength) * Math.sin(ballAngle - (discAngularVelocity * time)));
+	}
+
+	function updateDiscPosition() {
+		discX = discRadius * Math.cos(discAngularVelocity * time);
+		discY = discRadius * Math.sin(discAngularVelocity * time);
+	}
+
+	function updateBallPosition() {
+		ballX = (discRadius * Math.cos(discAngularVelocity * time)) + (ropeLength * Math.sin(ballAngle));
+		ballY = (discRadius * Math.sin(discAngularVelocity * time)) - (ropeLength * Math.cos(ballAngle));
+	}
+
+	// Convert coordinates to pixel values
+	function toXPixels(x) {
+		return ((x + discRadius + ropeLength) / (discRadius + ropeLength)) * (canvas.width / 2);
+	}
+
+	function toYPixels(y) {
+		return ((-y + discRadius + ropeLength) / (discRadius + ropeLength)) * (canvas.height / 2);
+	}
+	
+	// Drawing functions
+	function drawBall() {
+		c.beginPath();
+		c.arc(toXPixels(ballX), toYPixels(ballY), ballRadius, 0, Math.PI * 2);
+		c.fillStyle = "#38ac54";
+		c.fill();
+		c.closePath();
+	}
+
+	function drawString() {
+		c.beginPath();
+		c.moveTo(toXPixels(discX), toYPixels(discY));
+		c.lineTo(toXPixels(ballX), toYPixels(ballY));
+		c.stroke();
+		c.closePath();
+	}
+
+	function drawDisc() {
+		c.beginPath();
+		c.arc(toXPixels(0), toYPixels(0), pixelsPerMeter * discRadius, 0, Math.PI * 2);
+		c.strokeStyle = "#ffffff";
+		c.stroke();
+		c.closePath();
+	}
+
+	// Compute and draw
+	function draw() {
+		if (spaceToggle) {
+			c.clearRect(0, 0, canvas.width, canvas.height);
+			updateBallPosition();
+			updateDiscPosition();
+			drawBall();
+			drawString();
+			drawDisc();
+
+			ballConditions = rk4(ballAngle, ballAngelularVelocity, ballAngularAcceleration, timestep);
+			ballAngle = ballConditions[0];
+			ballAngelularVelocity = ballConditions[1];
+
+			console.log(timestep);
+
+		}
+
+	}
+
+	var loop = setInterval(draw, timestep * 1000);
+
+</script>
+
+</body>
+</html>
