@@ -23,10 +23,10 @@
 	var spaceToggle = false;
 
 	// physics parameters
-	var discRadius = 0.5;
-	var ropeLength = 1;
-	var discAngularVelocity = Math.PI / 12;
-	var ballAngle = Math.PI / 4;
+	var discRadius = 0.8;
+	var ropeLength = Math.PI / 2;
+	var discAngularVelocity = Math.E;
+	var ballAngle = Math.PI / 6;
 	var g = 9.8;
 	var timestep = 0.01;
 
@@ -38,9 +38,12 @@
 	var ballConditions = [ballAngle, ballAngelularVelocity];
 	var discX = 0;
 	var discY = 0;
+	var previousBallX = new Queue();
+	var previousBallY = new Queue();
 
 	// graphics values
 	var ballRadius = 10;
+	var spokes = 20;
 	var pixelsPerMeter = (canvas.width / 2) / (discRadius + ropeLength);
 
 	// user controls
@@ -52,6 +55,57 @@
 	    } else if (e.keyCode == 32 && spaceToggle == true) {
 	    	spaceToggle = false;
 	    }
+	}
+
+	// High performance queue for past ball positions
+	function Queue() {
+
+		// initialise the queue and offset
+		var queue  = [];
+		var offset = 0;
+
+		// Returns the length of the queue.
+		this.getLength = function() {
+			return (queue.length - offset);
+		}
+
+		// Returns true if the queue is empty, and false otherwise.
+		this.isEmpty = function() {
+			return (queue.length == 0);
+		}
+
+		// Enqueues the specified item. The parameter is:
+		// item - the item to enqueue
+		this.enqueue = function(item) {
+	    	queue.push(item);
+		}
+
+		// Dequeues an item and returns it. If the queue is empty, the value
+		// 'undefined' is returned.
+		this.dequeue = function() {
+
+			// if the queue is empty, return immediately
+			if (queue.length == 0) return undefined;
+
+	    	// store the item at the front of the queue
+			var item = queue[offset];
+
+			// increment the offset and remove the free space if necessary
+			if (++ offset * 2 >= queue.length) {
+				queue  = queue.slice(offset);
+				offset = 0;
+			}
+
+			// return the dequeued item
+			return item;
+
+		}
+
+		// Returns the item at the front of the queue (without dequeuing it). If the
+		// queue is empty then undefined is returned.
+		this.peek = function() {
+			return (queue.length > 0 ? queue[offset] : undefined);
+		}
 	}
 
 	// Fourth order Runge-Kutta method for kinematics approximation
@@ -89,7 +143,7 @@
 	// Passable angular acceleration function for ball
 	function ballAngularAcceleration(theta, omega, dt) {
 		return ((discRadius / ropeLength) * discAngularVelocity * discAngularVelocity * Math.cos(ballAngle - (discAngularVelocity * time)))
-				- ((g / ropeLength) * Math.sin(ballAngle - (discAngularVelocity * time)));
+				- ((g / ropeLength) * Math.sin(ballAngle));
 	}
 
 	function updateDiscPosition() {
@@ -98,6 +152,14 @@
 	}
 
 	function updateBallPosition() {
+		// if (previousBallX.getlength() > 100) {
+		// 	previousBallX.dequeue();
+		// 	previousBallY.dequeue();
+		// }
+
+		// previousBallX.enqueue(ballX);
+		// previousBallY.enqueue(ballY);
+
 		ballX = (discRadius * Math.cos(discAngularVelocity * time)) + (ropeLength * Math.sin(ballAngle));
 		ballY = (discRadius * Math.sin(discAngularVelocity * time)) - (ropeLength * Math.cos(ballAngle));
 	}
@@ -112,20 +174,25 @@
 	}
 	
 	// Drawing functions
-	function drawBall() {
+	function drawBall(x, y, opacity) {
 		c.beginPath();
-		c.arc(toXPixels(ballX), toYPixels(ballY), ballRadius, 0, Math.PI * 2);
-		c.fillStyle = "#38ac54";
+		c.arc(toXPixels(x), toYPixels(y), ballRadius, 0, Math.PI * 2);
+		c.fillStyle = "rgba(56, 172, 84, " + opacity.toString() + ")";
 		c.fill();
 		c.closePath();
 	}
 
 	function drawString() {
 		c.beginPath();
+		c.strokeStyle = "#ffffff";
 		c.moveTo(toXPixels(discX), toYPixels(discY));
 		c.lineTo(toXPixels(ballX), toYPixels(ballY));
 		c.stroke();
 		c.closePath();
+
+		c.arc(toXPixels(discX), toYPixels(discY), 3, 0, Math.PI * 2);
+		c.fillStyle = "#ff0000";
+		c.fill();
 	}
 
 	function drawDisc() {
@@ -136,21 +203,46 @@
 		c.closePath();
 	}
 
+	function drawPastBalls() {
+		for (var i = 0; i < previousBallX.length; i++) {
+			drawBall(previousBallX[i], previousBallY[i], 0.1);
+			console.log(previousBallX[i]);
+		}
+	}
+
+	function drawSpokes() {
+		c.strokeStyle = "#ffffff";
+
+		for (var i = 0; i < spokes; i++) {
+			var spokeAngle = (discAngularVelocity * time) + (i * ((2 * Math.PI) / spokes));
+			var spokeX = discRadius * Math.cos(spokeAngle);
+			var spokeY = discRadius * Math.sin(spokeAngle);
+
+			c.beginPath();
+			c.moveTo(toXPixels(0), toYPixels(0));
+			c.lineTo(toXPixels(spokeX), toYPixels(spokeY));
+			c.stroke();
+			c.closePath();
+		}
+	}
+
 	// Compute and draw
 	function draw() {
 		if (spaceToggle) {
 			c.clearRect(0, 0, canvas.width, canvas.height);
 			updateBallPosition();
 			updateDiscPosition();
-			drawBall();
+			drawSpokes();
+			// drawPastBalls();
 			drawString();
 			drawDisc();
+			drawBall(ballX, ballY, 1);
 
 			ballConditions = rk4(ballAngle, ballAngelularVelocity, ballAngularAcceleration, timestep);
 			ballAngle = ballConditions[0];
 			ballAngelularVelocity = ballConditions[1];
 
-			console.log(timestep);
+			// console.log(previousBallY);
 
 		}
 
