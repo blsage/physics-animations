@@ -10,7 +10,7 @@
 </head>
 <body>
 
-<canvas id="canvas" width="480" height="320" style="background-color: #262626"></canvas>
+<canvas id="canvas" width="480" height="320" style="background-color: #ffffff"></canvas>
 
 <script>
 	var canvas = document.getElementById("canvas");
@@ -26,9 +26,9 @@
 	var y = canvas.height - 30;
 	var vx = 0;
 	var state = [x, vx];
-	var mass = 1;
+	var mass = 0.2;
 	var stiffness = 4.38649;
-	var cof = 0.01;
+	var cof = 0.03;
 	var g = 9.8;
 	var timestep = 42;
 	var time = 0;
@@ -115,7 +115,7 @@
 
 		ctx.beginPath();
 		ctx.rect(canvas.width / 2, canvas.height / 2, PEWidth, 20);
-		ctx.fillStyle = "#00ffff";
+		ctx.fillStyle = "#262626";
 	    ctx.fill();
 	    ctx.closePath();
 
@@ -131,7 +131,7 @@
 	    ctx.fillStyle = "#38ac54";
 	    ctx.fillText("KE", canvas.width / 2 - 30, canvas.height / 2 + 15);
 
-	    ctx.fillStyle = "#00ffff";
+	    ctx.fillStyle = "#262626";
 	    ctx.fillText("PE", canvas.width / 2 - 60, canvas.height / 2 + 15);
 	}
 
@@ -145,7 +145,7 @@
 	    	drawE();
 	    }
 
-	    if (Math.abs(state[0]) < 0.1 && Math.abs(state[1]) < 0.01) {
+	    if (Math.abs(state[0]) < 0.001 && Math.abs(state[1]) < 0.001) {
 	    	clearInterval(loop);
 	    }
 

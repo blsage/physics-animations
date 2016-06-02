@@ -12,18 +12,6 @@
 
 <canvas id="canvas" width="480" height="480" style="background-color: #ffffff"></canvas>
 
-<div class="row">
-  <div class="small-10 medium-11 columns">
-    <div class="range-slider" data-slider data-options="display_selector: #sliderOutput3;">
-      <span class="range-slider-handle" role="slider" tabindex="0"></span>
-      <span class="range-slider-active-segment"></span>
-    </div>
-  </div>
-  <div class="small-2 medium-1 columns">
-    <span id="sliderOutput3"></span>
-  </div>
-</div>
-
 <script>
 
 	// setup
@@ -36,31 +24,27 @@
 	var dToggle = false;
 
 	// parameters
-	var spokes = 6;
-	var discRadius = 0.5;
-	var ballRadius = 0.05;
-	var ropeLength = 1;
-	var ballAngle = -Math.PI / 2;//-Math.PI / 2;
+	var ballRadius = 0.1;
+	var ropeLength = 2;
+	var ballAngleInitial = Math.PI / 2;//-Math.PI / 2;
 	var b = 0.1;
 	var g = 9.8;
-	var discAngularVelocity = Math.sqrt(g / ropeLength);//1 / (2 * Math.pow((ropeLength / g), 0.5));
 	var timestep = 0.01;
 
 	// global variables
 	var time = 0;
 	var ballX = 0;
 	var ballY = 0;
+	var ballAngle = ballAngleInitial;
 	var ballAngelularVelocity = 0;
 	var ballConditions = [ballAngle, ballAngelularVelocity];
-	var discX = 0;
-	var discY = 0;
 	var previousBallX = [];
 	var previousBallY = [];
 	var pathDrawn = false;
 	var iterations = 0;
 
 	// graphics values
-	var pixelsPerMeter = (canvas.width / 2) / (discRadius + ropeLength + ballRadius);
+	var pixelsPerMeter = (canvas.width / 2) / (ropeLength + ballRadius);
 
 	// user controls
 	document.addEventListener("keydown", keyDownHandler, false);
@@ -77,7 +61,7 @@
 	    }
 	}
 
-	// Fourth order Runge-Kutta method for kinematics approximation
+	// Fourth order Runge-Kutta method for kinematics ingegration approximation
 	// Returns final (angle, angular momentum) array after time dt has passed.
   	// theta: initial angle
  	// omega: initial angular momentum
@@ -85,6 +69,8 @@
  	// dt: timestep
  	function rk4(theta, omega, alpha, dt) {
   		
+ 		// if (thta)
+
   		var theta0 = theta;
 		var omega0 = omega;
 		var alpha0 = alpha.apply(this, [theta0, omega0, 0]);
@@ -111,30 +97,24 @@
 
 	// Passable angular acceleration function for ball
 	function ballAngularAcceleration(theta, omega, dt) {
-		return ((discRadius / ropeLength) * discAngularVelocity * discAngularVelocity * Math.cos(ballAngle - (discAngularVelocity * time)))
-				- ((g / ropeLength) * Math.sin(ballAngle));
-	}
-
-	function updateDiscPosition() {
-		discX = discRadius * Math.cos(discAngularVelocity * time);
-		discY = discRadius * Math.sin(discAngularVelocity * time);
+		return -((g / ropeLength) * Math.sin(ballAngle));
 	}
 
 	function updateBallPosition() {
 		previousBallX.push(ballX);
 		previousBallY.push(ballY);
 
-		ballX = (discRadius * Math.cos(discAngularVelocity * time)) + (ropeLength * Math.sin(ballAngle));
-		ballY = (discRadius * Math.sin(discAngularVelocity * time)) - (ropeLength * Math.cos(ballAngle));
+		ballX = ropeLength * Math.sin(ballAngle);
+		ballY = -(ropeLength * Math.cos(ballAngle));
 	}
 
 	// Convert coordinates to pixel values
 	function toXPixels(x) {
-		return ((x + ballRadius + discRadius + ropeLength) / (ballRadius + discRadius + ropeLength)) * (canvas.width / 2);
+		return ((x + ballRadius + ropeLength) / (ballRadius + ropeLength)) * (canvas.width / 2);
 	}
 
 	function toYPixels(y) {
-		return ((-y + ballRadius + discRadius + ropeLength) / (ballRadius + discRadius + ropeLength)) * (canvas.height / 2);
+		return ((-y + ballRadius + ropeLength) / (ballRadius + ropeLength)) * (canvas.height / 2);
 	}
 	
 	// Drawing functions
@@ -148,23 +128,15 @@
 
 	function drawString() {
 		c.beginPath();
-		c.arc(toXPixels(discX), toYPixels(discY), 3, 0, Math.PI * 2);
+		c.arc(toXPixels(0), toYPixels(0), 3, 0, Math.PI * 2);
 		c.fillStyle = "#38ac54";
 		c.fill();
 		c.closePath();
 
 		c.beginPath();
 		c.strokeStyle = "#262626";
-		c.moveTo(toXPixels(discX), toYPixels(discY));
+		c.moveTo(toXPixels(0), toYPixels(0));
 		c.lineTo(toXPixels(ballX), toYPixels(ballY));
-		c.stroke();
-		c.closePath();
-	}
-
-	function drawDisc() {
-		c.beginPath();
-		c.arc(toXPixels(0), toYPixels(0), pixelsPerMeter * discRadius, 0, Math.PI * 2);
-		c.strokeStyle = "#262626";
 		c.stroke();
 		c.closePath();
 	}
@@ -181,27 +153,10 @@
 		}
 	}
 
-	function drawSpokes() {
-		c.strokeStyle = "#262626";
-
-		for (var i = 0; i < spokes; i++) {
-			var spokeAngle = (discAngularVelocity * time) + (i * ((2 * Math.PI) / spokes));
-			var spokeX = discRadius * Math.cos(spokeAngle);
-			var spokeY = discRadius * Math.sin(spokeAngle);
-
-			c.beginPath();
-			c.moveTo(toXPixels(0), toYPixels(0));
-			c.lineTo(toXPixels(spokeX), toYPixels(spokeY));
-			c.stroke();
-			c.closePath();
-		}
-	}
-
 	// Compute and draw
 	function draw() {
 		if (spaceToggle) {
 			updateBallPosition();
-			updateDiscPosition();
 
 			ballConditions = rk4(ballAngle, ballAngelularVelocity, ballAngularAcceleration, timestep);
 			ballAngle = ballConditions[0];
@@ -210,15 +165,12 @@
 
 			if (iterations % 4 == 0) {
 				c.clearRect(0, 0, canvas.width, canvas.height);
-				pathDrawn = false;
-				console.log(time);
-				drawSpokes();
 				drawPastBalls(100);
-				drawDisc();
-				console.log(time);
 				drawString();
 				drawBall(ballX, ballY, 1);
 			}
+
+			console.log(ballAngle);
 
 			iterations++;
 		}
@@ -226,7 +178,6 @@
 		if (dToggle && !pathDrawn) {
 			drawAllPastBalls();
 			pathDrawn = true;
-			dToggle = false;
 		}
 	}
 
