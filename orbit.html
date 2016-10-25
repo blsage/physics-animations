@@ -12,52 +12,25 @@
 
 <canvas id="canvas" width="480" height="480" style="background-color: #ffffff"></canvas>
 
-<div style="text-align: center;">
-	<button onclick="reloadPressed()">Random Values</button>
-	<button onclick="spacePressed()">Start/Stop</button>
-	<button onclick="drawPressed()">Draw History</button>
-</div>
-<div style="text-align: center;">
-	<button onclick="reassignPressed()">Assign Parameters</button>
-</div>
+<button onclick="spacePressed()">Start/Stop</button>
+<button onclick="drawPressed()">Draw History</button>
+<button onclick="reassignPressed()">Assign Parameters</button>
 
 <form action="" method="POST">
-	<div id="userInput1" style="margin: 0px auto; width: 70%">
-		<div style="float:left; margin:0; width:33%;">
-		<br/>Spokes:<br/>
-		<input type="number" id="spokes" onblur='stop()' value="" size="5" />
-		</div>
-
-		<div style="float:left; margin:0; width:33%;">
-		<br/>Disc Radus (m):<br/>
-		<input type="number" id="dr" onblur='stop()' value="" size="5" />
-		</div>
-
-		<div style="float:left; margin:0; width:33%;">
-		<br/>Ball Radus (m):<br/>
-		<input type="number" id="br" onblur='stop()' value="" size="5" />
-		</div>
-	</div>
-
-	<div id="userInput2" style="margin: 0px auto; width: 70%">
-		<div style="float:left; margin:0; width:33%;">
-		<br/>Rod Length (m):<br/>
-		<input type="number" id="rl" onblur='stop()' value="" size="5" />
-		</div>
-
-		<!-- <br/>Initial Ball Angle (radians):<br/>
-		<input type="number" id="ba" onblur='stop()' value="-1.57" size="5" /> -->
-
-		<div style="float:left; margin:0; width:33%;">
-		<br/>Gravitational Acceleration (m/s^2):<br/>
-		<input type="number" id="ga" onblur='stop()' value="" size="5" />
-		</div>
-
-		<div style="float:left; margin:0; width:33%;">
-		<br/>Wheel Angular Velocity (radians/s):<br/>
-		<input type="number" id="av" onblur='stop()' value="" size="5" />
-		</div>
-	</div>
+ <br/>Spokes:<br/>
+<input type="number" id="spokes" onblur='stop()' value="8" size="5" />
+ <br/>Disc Radus (m):<br/>
+<input type="number" id="dr" onblur='stop()' value="0.5" size="5" />
+<br/>Ball Radus (m):<br/>
+<input type="number" id="br" onblur='stop()' value="0.05" size="5" />
+<br/>Rod Length (m):<br/>
+<input type="number" id="rl" onblur='stop()' value="0.5" size="5" />
+<!-- <br/>Initial Ball Angle (radians):<br/>
+<input type="number" id="ba" onblur='stop()' value="-1.57" size="5" /> -->
+<br/>Gravitational Acceleration (m/s^2):<br/>
+<input type="number" id="ga" onblur='stop()' value="9.8" size="5" />
+<br/>Wheel Angular Velocity (radians/s):<br/>
+<input type="number" id="av" onblur='stop()' value="4.43" size="5" />
 </form>
 
 <script>
@@ -71,6 +44,17 @@
 	var spaceToggle = false;
 	var dToggle = false;
 
+	// parameters
+	var spokes = 8;
+	var discRadius = 0.5;
+	var ballRadius = 0.05;
+	var ropeLength = 0.5;
+	var ballAngle = -1.57;//-Math.PI / 2;
+	var b = 0.1;
+	var g = 9.8;
+	var discAngularVelocity = 4.43;//1 / (2 * Math.pow((ropeLength / g), 0.5));
+	var timestep = 0.01;
+
 	// global variables
 	var time = 0;
 	var ballX = 0;
@@ -83,49 +67,6 @@
 	var previousBallY = [];
 	var pathDrawn = false;
 	var iterations = 0;
-
-	spokesMax = 10
-	spokesMin = 2
-	drMax = 3.25
-	drMin = 0.25
-	brMax = 0.2975
-	brMin = 0.1
-	rlMax = 5.25
-	rlMin = 0.25
-	gMax = 5
-	gMax = 20
-	avMax = 5
-	avMin = 1.5
-
-	// parameters
-	// 2-10
-	var spokes = Math.floor(Math.random() * (spokesMax - spokesMin + 1)) + spokesMin;
-	document.getElementById("spokes").value = spokes;
-
-	// 0.25 - 3.25
-	var discRadius = (Math.random() * (drMax - drMin)) + drMin;
-	document.getElementById("dr").value = discRadius;
-
-	// 0.0025 - 0.15
-	var ballRadius = (Math.random() * (brMax - brMin)) + brMin;
-	document.getElementById("br").value = ballRadius;
-
-	// 0.25 - 3.25
-	var ropeLength = (Math.random() * (rlMax - rlMin)) + rlMin;
-	document.getElementById("rl").value = ropeLength;
-
-	var ballAngle = -1.57;//-Math.PI / 2;
-	var b = 0.1;
-
-	var g = 9.8;
-	document.getElementById("ga").value = g;
-
-	// 2.5 - 6
-	var discAngularVelocity = (Math.random() * (avMax - avMin)) + avMin;
-	document.getElementById("av").value = discAngularVelocity;
-
-	// timestep
-	var timestep = 0.01;
 
 	// graphics values
 	var pixelsPerMeter = (canvas.width / 2) / (discRadius + ropeLength + ballRadius);
@@ -163,102 +104,14 @@
 
 		c.clearRect(0, 0, canvas.width, canvas.height);
 
-		spokes = parseInt(document.getElementById("spokes").value, 10);
-		if (spokes > spokesMax) {
-			spokes = spokesMax;
-		} else if (spokes < spokesMin) {
-			spokes = spokesMin;
-		}
-		document.getElementById("spokes").value = spokes;
 
-		discRadius = parseFloat(document.getElementById("dr").value);
-		if (discRadius > drMax) {
-			discRadius = drMax;
-		} else if (discRadius < drMin) {
-			discRadius = drMin;
-		}
-		document.getElementById("dr").value = discRadius;
-
-		ballRadius = parseFloat(document.getElementById("br").value);
-		if (ballRadius > brMax) {
-			ballRadius = brMax;
-		} else if (ballRadius < brMin) {
-			ballRadius = brMin;
-		}
-		document.getElementById("br").value = ballRadius;
-
-		ropeLength = parseFloat(document.getElementById("rl").value);
-		if (ropeLength > rlMax) {
-			ropeLength = rlMax;
-		} else if (ropeLength < rlMin) {
-			ropeLength = rlMin;
-		}
-		document.getElementById("rl").value = ropeLength;
-
+		spokes = document.getElementById("spokes").value;
+		discRadius = document.getElementById("dr").value;
+		ballRadius = document.getElementById("br").value;
+		ropeLength = document.getElementById("rl").value;
 		ballAngle = -1.57;//document.getElementById("ba").value;
-		g = parseFloat(document.getElementById("ga").value);
-		if (g > gMax) {
-			g = gMax;
-		} else if (g < gMin) {
-			g = gMin;
-		}
-		document.getElementById("ga").value = g;
-
-		discAngularVelocity = parseFloat(document.getElementById("av").value);
-		if (discAngularVelocity > avMax) {
-			discAngularVelocity = avMax;
-		} else if (discAngularVelocity < avMin) {
-			discAngularVelocity = avMin;
-		}
-		document.getElementById("av").value = discAngularVelocity;
-
-		// global variables
-		time = 0;
-		ballX = 0;
-		ballY = 0;
-		ballAngelularVelocity = 0;
-		ballConditions = [ballAngle, ballAngelularVelocity];
-		discX = 0;
-		discY = 0;
-		previousBallX = [];
-		previousBallY = [];
-		pathDrawn = false;
-		iterations = 0;
-
-		// graphics values
-		pixelsPerMeter = (canvas.width / 2) / (discRadius + ropeLength + ballRadius);
-	}
-
-	function reloadPressed() {
-		spaceToggle = false;
-		dToggle = false;
-
-		c.clearRect(0, 0, canvas.width, canvas.height);
-
-		spokes = Math.floor(Math.random() * (spokesMax - spokesMin + 1)) + spokesMin;
-		document.getElementById("spokes").value = spokes;
-
-		// 0.25 - 3.25
-		discRadius = (Math.random() * (drMax - drMin)) + drMin;
-		document.getElementById("dr").value = discRadius;
-
-		// 0.0025 - 0.15
-		ballRadius = (Math.random() * (brMax - brMin)) + brMin;
-		document.getElementById("br").value = ballRadius;
-
-		// 0.25 - 3.25
-		ropeLength = (Math.random() * (rlMax - rlMin)) + rlMin;
-		document.getElementById("rl").value = ropeLength;
-
-		ballAngle = -1.57;//-Math.PI / 2;
-		b = 0.1;
-
-		g = 9.8;
-		document.getElementById("ga").value = g;
-
-		// 2.5 - 6
-		discAngularVelocity = (Math.random() * (avMax - avMin)) + avMin;
-		document.getElementById("av").value = discAngularVelocity;
+		g = document.getElementById("ga").value;
+		discAngularVelocity = document.getElementById("av").value;
 
 		// global variables
 		time = 0;
@@ -403,11 +256,7 @@
 
 	// Compute and draw
 	function draw() {
-
 		if (spaceToggle) {
-			// console.log((canvas.width / 2) / (discRadius + ropeLength + ballRadius))
-			// console.log(canvas.width / 2)
-			// console.log((discRadius + ropeLength))
 			updateBallPosition();
 			updateDiscPosition();
 
@@ -422,28 +271,10 @@
 				drawSpokes();
 				drawPastBalls(100);
 				drawDisc();
+				console.log(iterations);
 				drawString();
 				drawBall(ballX, ballY, 1);
 			}
-
-			iterations++;
-		}
-
-		if (iterations == 0) {
-			updateBallPosition();
-			updateDiscPosition();
-
-			ballConditions = rk4(ballAngle, ballAngelularVelocity, ballAngularAcceleration, timestep);
-			ballAngle = ballConditions[0];
-			ballAngelularVelocity = ballConditions[1];
-
-			c.clearRect(0, 0, canvas.width, canvas.height);
-			pathDrawn = false;
-			drawSpokes();
-			drawPastBalls(100);
-			drawDisc();
-			drawString();
-			drawBall(ballX, ballY, 1);
 
 			iterations++;
 		}
